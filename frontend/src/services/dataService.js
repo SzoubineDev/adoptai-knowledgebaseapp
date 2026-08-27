@@ -17,6 +17,14 @@ export function fetchStats() {
   return apiGet('/api/v1/stats');
 }
 
+export function fetchIamStats() {
+  return apiGet('/api/v1/stats').then(data => data.iam);
+}
+
+export function fetchNetworkStats() {
+  return apiGet('/api/v1/stats').then(data => data.network);
+}
+
 export function criticalityVariant(criticality) {
   if (criticality === 'Critique') return 'critical';
   if (criticality === 'Élevée' || criticality === 'Haute') return 'danger';
