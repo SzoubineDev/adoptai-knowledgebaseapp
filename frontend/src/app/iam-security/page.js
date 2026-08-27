@@ -1,10 +1,41 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Header from '@/components/layout/Header';
 import { Card, StatCard, Badge } from '@/components/ui/Cards';
-import { IAM_STATS, NETWORK_STATS } from '@/services/dataService';
+import { fetchIamStats, fetchNetworkStats } from '@/services/dataService';
 
 export default function IamSecurityPage() {
+  const [iamStats, setIamStats] = useState(null);
+  const [networkStats, setNetworkStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadStats() {
+      try {
+        const [iam, network] = await Promise.all([
+          fetchIamStats(),
+          fetchNetworkStats()
+        ]);
+        setIamStats(iam);
+        setNetworkStats(network);
+      } catch (error) {
+        console.error('Failed to load stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadStats();
+  }, []);
+
+  if (loading || !iamStats || !networkStats) {
+    return (
+      <div className="p-8">
+        <p className="text-slate-600">Chargement des données...</p>
+      </div>
+    );
+  }
+
   return (
     <>
       <Header
@@ -17,13 +48,13 @@ export default function IamSecurityPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
           <StatCard
             title="Comptes IAM Actifs"
-            value={IAM_STATS.totalAccounts}
+            value={iamStats.totalAccounts}
             icon="🆔"
             description="sur l'ensemble des périmètres"
           />
           <StatCard
             title="Taux MFA Enforced"
-            value={IAM_STATS.mfaEnforcedRate}
+            value={iamStats.mfaEnforcedRate}
             icon="🔑"
             change="Conforme"
             changeType="positive"
@@ -31,13 +62,13 @@ export default function IamSecurityPage() {
           />
           <StatCard
             title="VLAN Sécurisé"
-            value={NETWORK_STATS.vlan}
+            value={networkStats.vlan}
             icon="🌐"
             description="Zone AHDIGITAL"
           />
           <StatCard
             title="Règles Firewall"
-            value={NETWORK_STATS.activeFirewallRules}
+            value={networkStats.activeFirewallRules}
             icon="🛡️"
             description="politiques de filtrage"
           />
