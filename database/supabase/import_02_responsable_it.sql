@@ -1,0 +1,20 @@
+-- Import table responsable_it (18 valeurs uniques, suffixe "(Equipe IT)" retire)
+INSERT INTO responsable_it (nom_responsable) VALUES
+    ('Agathe Mercier'),
+    ('Alice Aubert'),
+    ('Alphonse Louis'),
+    ('Catherine Simon'),
+    ('Chantal Alves'),
+    ('Claudine Cohen'),
+    ('Colette Joseph'),
+    ('Juliette Gillet'),
+    ('Louise Blanchet'),
+    ('Luce Guillet'),
+    ('Madeleine Royer'),
+    ('Maggie Mathieu'),
+    ('Marine Descamps'),
+    ('Paulette Maillot'),
+    ('Sylvie Louis'),
+    ('Tristan Marin'),
+    ('Édith Techer'),
+    ('Élise Millet');

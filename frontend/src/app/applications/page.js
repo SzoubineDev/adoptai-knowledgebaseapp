@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import Header from '@/components/layout/Header';
 import { Card, Badge } from '@/components/ui/Cards';
-import { MOCK_APPLICATIONS } from '@/services/dataService';
 import Link from 'next/link';
 
 export default function ApplicationsPage() {
