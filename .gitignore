@@ -1,1 +1,48 @@
-Nothing should be ignored since the changes only include source code files (.js) and there are no build artifacts, dependencies, or temporary files in the change list.
+```
+# Environment variables
+.env
+
+# Prisma
+prisma/migrations/
+prisma/generated/
+
+# Dependencies
+node_modules/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+.env
+.env.*
+.env.local
+
+# Build outputs
+dist/
+build/
+target/
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+```
