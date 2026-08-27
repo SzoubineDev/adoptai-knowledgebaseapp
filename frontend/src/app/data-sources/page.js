@@ -1,10 +1,36 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Header from '@/components/layout/Header';
 import { Card, Badge } from '@/components/ui/Cards';
-import { DATA_SOURCES } from '@/services/dataService';
+import { PageStatus } from '@/components/ui/PageStatus';
+import { fetchDataSources } from '@/services/dataService';
 
 export default function DataSourcesPage() {
+  const [dataSources, setDataSources] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetchDataSources()
+      .then((sources) => {
+        if (cancelled) return;
+        setDataSources(sources);
+        setLoading(false);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(err.message || 'Erreur inattendue');
+        setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <>
       <Header
@@ -26,28 +52,30 @@ export default function DataSourcesPage() {
           </div>
         </Card>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {DATA_SOURCES.map((source) => (
-            <Card key={source.id} title={source.name} subtitle={source.type}>
-              <p className="text-xs text-slate-600 mb-4">{source.description}</p>
+        <PageStatus loading={loading} error={error}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {dataSources.map((source) => (
+              <Card key={source.id} title={source.name} subtitle={source.type}>
+                <p className="text-xs text-slate-600 mb-4">{source.description}</p>
 
-              <div className="space-y-2 text-xs">
-                <div className="flex justify-between py-1 border-b border-slate-100">
-                  <span className="text-slate-500">Statut de synchronisation</span>
-                  <Badge variant="success">{source.status}</Badge>
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between py-1 border-b border-slate-100">
+                    <span className="text-slate-500">Statut de synchronisation</span>
+                    <Badge variant="success">{source.status}</Badge>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-100">
+                    <span className="text-slate-500">Enregistrements extraits</span>
+                    <span className="font-bold text-slate-800">{source.count} entités</span>
+                  </div>
+                  <div className="flex justify-between py-1">
+                    <span className="text-slate-500">Dernière mise à jour</span>
+                    <span className="font-mono text-slate-600">{source.lastSync}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between py-1 border-b border-slate-100">
-                  <span className="text-slate-500">Enregistrements extraits</span>
-                  <span className="font-bold text-slate-800">{source.count} entités</span>
-                </div>
-                <div className="flex justify-between py-1">
-                  <span className="text-slate-500">Dernière mise à jour</span>
-                  <span className="font-mono text-slate-600">{source.lastSync}</span>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
+              </Card>
+            ))}
+          </div>
+        </PageStatus>
       </main>
     </>
   );

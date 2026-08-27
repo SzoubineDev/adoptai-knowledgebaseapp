@@ -1,16 +1,41 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Header from '@/components/layout/Header';
 import { Card, Badge } from '@/components/ui/Cards';
+import { PageStatus } from '@/components/ui/PageStatus';
 import Link from 'next/link';
+import { fetchApplications } from '@/services/dataService';
 
 export default function ApplicationsPage() {
+  const [applications, setApplications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSource, setSelectedSource] = useState('All');
   const [selectedCriticality, setSelectedCriticality] = useState('All');
 
-  const filteredApps = MOCK_APPLICATIONS.filter((app) => {
+  useEffect(() => {
+    let cancelled = false;
+
+    fetchApplications()
+      .then((apps) => {
+        if (cancelled) return;
+        setApplications(apps);
+        setLoading(false);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(err.message || 'Erreur inattendue');
+        setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const filteredApps = applications.filter((app) => {
     const matchesSearch =
       app.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       app.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -84,65 +109,67 @@ export default function ApplicationsPage() {
 
         {/* Applications List */}
         <Card title={`Résultats (${filteredApps.length} application(s))`}>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-600">
-              <thead className="bg-slate-50 text-xs uppercase text-slate-500 border-y border-slate-200">
-                <tr>
-                  <th className="py-3 px-4">Code & Nom</th>
-                  <th className="py-3 px-4">Source</th>
-                  <th className="py-3 px-4">Responsable</th>
-                  <th className="py-3 px-4">Tech Lead</th>
-                  <th className="py-3 px-4">Criticité</th>
-                  <th className="py-3 px-4">IAM / Access</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredApps.map((app) => (
-                  <tr key={app.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3.5 px-4 font-medium text-slate-900">
-                      <div className="font-semibold text-indigo-600">{app.name}</div>
-                      <div className="text-xs text-slate-400">{app.id} • {app.category}</div>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <Badge variant="primary">{app.source}</Badge>
-                    </td>
-                    <td className="py-3.5 px-4 text-xs font-medium text-slate-700">{app.owner}</td>
-                    <td className="py-3.5 px-4 text-xs text-slate-600">{app.techLead}</td>
-                    <td className="py-3.5 px-4">
-                      <Badge
-                        variant={
-                          app.criticality === 'Critique'
-                            ? 'critical'
-                            : app.criticality === 'Élevée'
-                            ? 'danger'
-                            : 'warning'
-                        }
-                      >
-                        {app.criticality}
-                      </Badge>
-                    </td>
-                    <td className="py-3.5 px-4 text-xs font-mono">{app.iamStatus}</td>
-                    <td className="py-3.5 px-4 text-right">
-                      <Link
-                        href={`/applications/${app.id}`}
-                        className="inline-flex items-center px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md text-xs font-medium transition-colors"
-                      >
-                        Détails
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-                {filteredApps.length === 0 && (
+          <PageStatus loading={loading} error={error}>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm text-slate-600">
+                <thead className="bg-slate-50 text-xs uppercase text-slate-500 border-y border-slate-200">
                   <tr>
-                    <td colSpan="7" className="text-center py-8 text-slate-400 text-sm">
-                      Aucune application ne correspond à vos critères de recherche.
-                    </td>
+                    <th className="py-3 px-4">Code & Nom</th>
+                    <th className="py-3 px-4">Source</th>
+                    <th className="py-3 px-4">Responsable</th>
+                    <th className="py-3 px-4">Tech Lead</th>
+                    <th className="py-3 px-4">Criticité</th>
+                    <th className="py-3 px-4">IAM / Access</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredApps.map((app) => (
+                    <tr key={app.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3.5 px-4 font-medium text-slate-900">
+                        <div className="font-semibold text-indigo-600">{app.name}</div>
+                        <div className="text-xs text-slate-400">{app.code} • {app.category}</div>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <Badge variant="primary">{app.source}</Badge>
+                      </td>
+                      <td className="py-3.5 px-4 text-xs font-medium text-slate-700">{app.owner}</td>
+                      <td className="py-3.5 px-4 text-xs text-slate-600">{app.techLead}</td>
+                      <td className="py-3.5 px-4">
+                        <Badge
+                          variant={
+                            app.criticality === 'Critique'
+                              ? 'critical'
+                              : app.criticality === 'Élevée'
+                              ? 'danger'
+                              : 'warning'
+                          }
+                        >
+                          {app.criticality}
+                        </Badge>
+                      </td>
+                      <td className="py-3.5 px-4 text-xs font-mono">{app.iamStatus}</td>
+                      <td className="py-3.5 px-4 text-right">
+                        <Link
+                          href={`/applications/${app.id}`}
+                          className="inline-flex items-center px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md text-xs font-medium transition-colors"
+                        >
+                          Détails
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                  {filteredApps.length === 0 && !loading && (
+                    <tr>
+                      <td colSpan="7" className="text-center py-8 text-slate-400 text-sm">
+                        Aucune application ne correspond à vos critères de recherche.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </PageStatus>
         </Card>
       </main>
     </>
