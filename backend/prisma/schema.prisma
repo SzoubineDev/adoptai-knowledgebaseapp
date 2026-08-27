@@ -10,5 +10,155 @@ datasource db {
   url      = env("PRISMA_DATABASE_URL")
 }
 
-// Define your models here based on your existing database tables
-// Run `prisma db pull` to introspect your Supabase database and generate models
+model AliasApplication {
+  idAlias       Int     @id @default(autoincrement()) @map("id_alias")
+  nomSource     String  @map("nom_source")
+  systemeSource String? @map("systeme_source")
+  idApplication Int     @map("id_application")
+  application   Application @relation(fields: [idApplication], references: [idApplication])
+
+  @@map("alias_application")
+}
+
+model Appareil {
+  idAppareil        Int     @id @default(autoincrement()) @map("id_appareil")
+  hardwareModel     String? @map("hardware_model")
+  serialNumber      String? @map("serial_number")
+  osVersion         String? @map("os_version")
+  storageCapacityGb Int?    @map("storage_capacity_gb")
+  mdmStatus         String? @default("Managed") @map("mdm_status")
+  idUtilisateur     Int     @map("id_utilisateur")
+  idResponsable     Int?    @map("id_responsable")
+  utilisateur       Utilisateur @relation(fields: [idUtilisateur], references: [idUtilisateur])
+  responsable       ResponsableIt? @relation(fields: [idResponsable], references: [idResponsable])
+  installations     Installation[]
+
+  @@map("appareil")
+}
+
+model Application {
+  idApplication      Int      @id @default(autoincrement()) @map("id_application")
+  nomCanonique       String   @map("nom_canonique")
+  description        String?
+  type               String?
+  criticite          String?
+  statut             String?  @default("Actif")
+  dateDerniereMaj    DateTime? @map("date_derniere_maj")
+  idDepartement      Int      @map("id_departement")
+  departement        Departement @relation(fields: [idDepartement], references: [idDepartement])
+  aliasApplications  AliasApplication[]
+  installations      Installation[]
+  tickets            TicketHelpdesk[]
+  services           ServiceSap[]
+
+  @@map("application")
+}
+
+model Departement {
+  idDepartement    Int      @id @default(autoincrement()) @map("id_departement")
+  nomDepartement   String   @map("nom_departement")
+  applications     Application[]
+  utilisateurs     Utilisateur[]
+  tickets          TicketHelpdesk[]
+  services         ServiceSap[]
+
+  @@map("departement")
+}
+
+model Installation {
+  idAppareil    Int       @map("id_appareil")
+  idApplication Int       @map("id_application")
+  appareil      Appareil  @relation(fields: [idAppareil], references: [idAppareil])
+  application   Application @relation(fields: [idApplication], references: [idApplication])
+
+  @@id([idAppareil, idApplication])
+  @@map("installation")
+}
+
+model ModuleSap {
+  idModule   Int        @id @default(autoincrement()) @map("id_module")
+  nomModule  String     @map("nom_module")
+  services   ServiceSap[]
+
+  @@map("module_sap")
+}
+
+model ProcessusMetier {
+  idProcessus   Int        @id @default(autoincrement()) @map("id_processus")
+  nomProcessus  String     @map("nom_processus")
+  services      ServiceSap[]
+
+  @@map("processus_metier")
+}
+
+model ResponsableIt {
+  idResponsable  Int      @id @default(autoincrement()) @map("id_responsable")
+  nomResponsable String   @map("nom_responsable")
+  idAuth         String?  @map("id_auth") @db.Uuid
+  appareils      Appareil[]
+
+  @@map("responsable_it")
+}
+
+model Serveur {
+  idServeur     Int        @id @default(autoincrement()) @map("id_serveur")
+  environnement String?
+  nomNoeud      String?    @map("nom_noeud")
+  services      ServiceSap[]
+
+  @@map("serveur")
+}
+
+model ServiceSap {
+  idServiceSap     Int     @id @default(autoincrement()) @map("id_service_sap")
+  nomService       String  @map("nom_service")
+  version          String?
+  idApplication    Int?    @map("id_application")
+  idProcessus      Int     @map("id_processus")
+  idServeur        Int     @map("id_serveur")
+  idDepartement    Int     @map("id_departement")
+  idModule         Int     @map("id_module")
+  numeroWorkflow   String? @map("numero_workflow")
+  application      Application? @relation(fields: [idApplication], references: [idApplication])
+  processusMetier  ProcessusMetier @relation(fields: [idProcessus], references: [idProcessus])
+  serveur          Serveur @relation(fields: [idServeur], references: [idServeur])
+  departement      Departement @relation(fields: [idDepartement], references: [idDepartement])
+  moduleSap        ModuleSap @relation(fields: [idModule], references: [idModule])
+
+  @@map("service_sap")
+}
+
+model TicketHelpdesk {
+  idTicket        Int      @id @default(autoincrement()) @map("id_ticket")
+  description     String?
+  priorite        String?
+  statut          String?  @default("En attente")
+  dateCreation    DateTime? @map("date_creation")
+  idApplication   Int      @map("id_application")
+  idDepartement   Int      @map("id_departement")
+  idTypeIncident  Int      @map("id_type_incident")
+  application     Application @relation(fields: [idApplication], references: [idApplication])
+  departement     Departement @relation(fields: [idDepartement], references: [idDepartement])
+  typeIncident    TypeIncident @relation(fields: [idTypeIncident], references: [idTypeIncident])
+
+  @@map("ticket_helpdesk")
+}
+
+model TypeIncident {
+  idTypeIncident Int          @id @default(autoincrement()) @map("id_type_incident")
+  libelleType    String       @map("libelle_type")
+  tickets        TicketHelpdesk[]
+
+  @@map("type_incident")
+}
+
+model Utilisateur {
+  idUtilisateur Int      @id @default(autoincrement()) @map("id_utilisateur")
+  email         String
+  idDepartement Int      @map("id_departement")
+  idAuth        String?  @map("id_auth") @db.Uuid
+  departement   Departement @relation(fields: [idDepartement], references: [idDepartement])
+  appareils     Appareil[]
+
+  @@map("utilisateur")
+}

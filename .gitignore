@@ -1,48 +1,54 @@
 ```
-# Environment variables
-.env
-
-# Prisma
-prisma/migrations/
-prisma/generated/
-
 # Dependencies
 node_modules/
 
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-venv/
-ENV/
-.venv/
+# Prisma
+prisma/migrations/
+prisma/schema.prisma.bak
+
+# Environment
 .env
-.env.*
 .env.local
+*.env.*
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db
 
 # Build outputs
 dist/
 build/
 target/
+out/
 
-# Logs
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
 *.log
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
+.git/modules/
 .DS_Store
 Thumbs.db
-
-# Coverage
-coverage/
-htmlcov/
-.coverage
 ```
