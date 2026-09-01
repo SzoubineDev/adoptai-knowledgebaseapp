@@ -3,12 +3,24 @@ B2 - Application Settings & Environment Variable Configuration
 Project : AdoptAI App Knowledge Base
 Author  : Oussama
 Stage   : 1 (Foundation)
+
+Loads and validates all environment variables at startup using Pydantic v2
+BaseSettings. Any missing or malformed required variable raises a clear
+ValidationError immediately, rather than failing silently at runtime.
+
+Usage:
+    # Option 1 – cached singleton (recommended for production code)
+    from app.core.config import get_settings
+    settings = get_settings()
+
+    # Option 2 – direct module-level import (for bootstrap code)
+    from app.core.config import settings
 """
 
 from functools import lru_cache
 from typing import List
 
-from pydantic import AnyUrl, field_validator
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -24,9 +36,10 @@ class Settings(BaseSettings):
     # ------------------------------------------------------------------
     # Application metadata
     # ------------------------------------------------------------------
-    APP_NAME: str = "AdoptAI App Knowledge Base"
+    PROJECT_NAME: str = "AdoptAI App Knowledge Base"
     APP_VERSION: str = "0.1.0"
     APP_DESCRIPTION: str = "Centralized knowledge base API for AdoptAI applications"
+    API_V1_STR: str = "/api/v1"
     DEBUG: bool = False
 
     # ------------------------------------------------------------------
@@ -44,9 +57,16 @@ class Settings(BaseSettings):
         return value
 
     # ------------------------------------------------------------------
-    # Database
+    # Database – SQLAlchemy (synchronous, psycopg2 driver)
+    # Required – no default so startup fails loudly if missing.
     # ------------------------------------------------------------------
     DATABASE_URL: str
+
+    # ------------------------------------------------------------------
+    # Database – Prisma Client Python
+    # Used by `prisma generate` and the Prisma async client.
+    # ------------------------------------------------------------------
+    PRISMA_DATABASE_URL: str = ""
 
     # ------------------------------------------------------------------
     # Security (reserved for future auth stages – not used in Stage 1)
@@ -67,6 +87,14 @@ class Settings(BaseSettings):
         case_sensitive=False,
     )
 
+    # ------------------------------------------------------------------
+    # Derived helpers (not env vars — computed from other fields)
+    # ------------------------------------------------------------------
+    @property
+    def app_name(self) -> str:
+        """Shorthand alias kept for backward-compat with code using APP_NAME."""
+        return self.PROJECT_NAME
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
@@ -76,9 +104,12 @@ def get_settings() -> Settings:
     Using @lru_cache means the .env file is parsed exactly once per
     process lifetime, which is both efficient and safe for production.
 
-    Usage (in any FastAPI dependency or module):
+    Typical FastAPI DI usage:
         from app.core.config import get_settings
-        settings = get_settings()
+        from fastapi import Depends
+
+        def some_route(cfg: Settings = Depends(get_settings)):
+            ...
     """
     return Settings()
 

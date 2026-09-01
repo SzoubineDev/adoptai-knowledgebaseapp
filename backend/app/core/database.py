@@ -1,85 +1,80 @@
 """
-B2 - SQLAlchemy 2.0 Engine & Session Factory
+B2 - Prisma Client Python — Database Connection Manager
 Project : AdoptAI App Knowledge Base
 Author  : Oussama
 Stage   : 1 (Foundation)
+
+Replaces the SQLAlchemy engine with the official Prisma Client Python
+async client, which connects directly to Supabase (PostgreSQL) using
+the PRISMA_DATABASE_URL environment variable.
+
+Architecture:
+  - `prisma` singleton is instantiated at module level (lazy connection).
+  - FastAPI's `lifespan` context manager calls connect() / disconnect()
+    at app startup / shutdown — ensuring clean connection lifecycle.
+  - `get_prisma()` is a FastAPI dependency that injects the connected
+    client into route handlers.
+
+Requirements:
+    prisma-client-py  (pip install prisma)
+    PRISMA_DATABASE_URL set in .env
 """
 
-from collections.abc import Generator
+from collections.abc import AsyncGenerator
 
-from sqlalchemy import create_engine, event, text
-from sqlalchemy.orm import Session, sessionmaker
+from prisma import Prisma
 
 from app.core.config import settings
 
 # ---------------------------------------------------------------------------
-# Engine
+# Prisma Client singleton
 # ---------------------------------------------------------------------------
-# `pool_pre_ping=True` ensures stale connections are detected and recycled
-# before being handed to application code – critical for long-running servers.
-# `echo=settings.DEBUG` logs all SQL statements when DEBUG mode is active,
-# which is helpful during development but should be False in production.
+# Instantiated at import time; actual TCP connection is established later
+# by calling `await prisma.connect()` inside the FastAPI lifespan handler.
 # ---------------------------------------------------------------------------
-engine = create_engine(
-    settings.DATABASE_URL,
-    pool_pre_ping=True,
-    echo=settings.DEBUG,
-    # Connection pool settings – sensible defaults for a small-to-medium API.
-    pool_size=5,
-    max_overflow=10,
-    pool_timeout=30,
+prisma: Prisma = Prisma(
+    # datasource_url overrides the `url` in schema.prisma at runtime,
+    # allowing the same generated client to connect to different environments
+    # (dev / staging / prod) purely through environment variables.
+    datasource_url=settings.PRISMA_DATABASE_URL or None,
 )
 
 
 # ---------------------------------------------------------------------------
-# Session Factory
+# FastAPI Dependency – Prisma Client
 # ---------------------------------------------------------------------------
-# `autocommit=False` – we manage transactions explicitly (best practice).
-# `autoflush=False`  – prevents unintended flushes before queries; gives
-#                      callers full control over when state is sent to DB.
-# ---------------------------------------------------------------------------
-SessionLocal: sessionmaker[Session] = sessionmaker(
-    bind=engine,
-    autocommit=False,
-    autoflush=False,
-    expire_on_commit=False,  # Avoids lazy-load errors after commit in APIs
-)
-
-
-# ---------------------------------------------------------------------------
-# FastAPI Dependency – Database Session
-# ---------------------------------------------------------------------------
-def get_db() -> Generator[Session, None, None]:
+async def get_prisma() -> AsyncGenerator[Prisma, None]:
     """
-    FastAPI dependency that yields a transactional database session.
+    FastAPI dependency that yields the connected Prisma client.
 
-    Guarantees the session is always closed after the request completes,
-    even if an exception is raised. Commit / rollback decisions are left
-    to the service / repository layer.
+    The client is connected during the application lifespan (see main.py),
+    so this dependency simply yields the already-connected singleton without
+    re-opening a connection on every request.
 
     Usage in a route:
+        from prisma import Prisma
+        from fastapi import Depends
+        from app.core.database import get_prisma
+
         @router.get("/example")
-        def example(db: Session = Depends(get_db)):
-            ...
+        async def example(db: Prisma = Depends(get_prisma)):
+            return await db.article.find_many()
     """
-    db: Session = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+    yield prisma
 
 
 # ---------------------------------------------------------------------------
-# Health-check helper (used by Stage 3+ startup events / health endpoint)
+# Health-check helper
 # ---------------------------------------------------------------------------
-def check_database_connection() -> bool:
+async def check_database_connection() -> bool:
     """
-    Attempts a lightweight round-trip to the database.
-    Returns True if the connection is healthy, False otherwise.
+    Performs a lightweight query to verify the Prisma/PostgreSQL connection.
+    Returns True if healthy, False otherwise.
+    Used by the /health endpoint (optional readiness probe).
     """
     try:
-        with engine.connect() as connection:
-            connection.execute(text("SELECT 1"))
+        # `query_raw` with a trivial SELECT is the lightest possible probe.
+        await prisma.query_raw("SELECT 1")
         return True
     except Exception:
         return False
