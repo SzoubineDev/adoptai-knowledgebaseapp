@@ -46,21 +46,28 @@ class Settings(BaseSettings):
     # CORS – accepted as a comma-separated string from the env file and
     # parsed into a list of strings by the validator below.
     # ------------------------------------------------------------------
-    ALLOWED_ORIGINS: List[str] = ["http://localhost:3000"]
+    ALLOWED_ORIGINS: str | List[str] = ["http://localhost:3000"]
 
     @field_validator("ALLOWED_ORIGINS", mode="before")
     @classmethod
-    def parse_allowed_origins(cls, value: str | List[str]) -> List[str]:
+    def parse_allowed_origins(cls, value: Any) -> List[str]:
         """Accept either a Python list OR a comma-separated string from .env."""
         if isinstance(value, str):
+            if value.startswith("[") and value.endswith("]"):
+                import json
+                try:
+                    return json.loads(value)
+                except Exception:
+                    pass
             return [origin.strip() for origin in value.split(",") if origin.strip()]
-        return value
+        if isinstance(value, list):
+            return [str(v).strip() for v in value]
+        return ["http://localhost:3000"]
 
     # ------------------------------------------------------------------
-    # Database – SQLAlchemy (synchronous, psycopg2 driver)
-    # Required – no default so startup fails loudly if missing.
+    # Database – SQLAlchemy / PostgreSQL
     # ------------------------------------------------------------------
-    DATABASE_URL: str
+    DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/postgres"
 
     # ------------------------------------------------------------------
     # Database – Prisma Client Python

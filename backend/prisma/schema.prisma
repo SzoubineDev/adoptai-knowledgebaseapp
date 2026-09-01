@@ -5,6 +5,11 @@ generator client {
   provider = "prisma-client-js"
 }
 
+generator py_client {
+  provider  = "prisma-client-py"
+  interface = "asyncio"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("PRISMA_DATABASE_URL")
@@ -161,4 +166,42 @@ model Utilisateur {
   appareils     Appareil[]
 
   @@map("utilisateur")
+}
+
+model Category {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  slug        String    @unique
+  description String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  articles    Article[]
+
+  @@map("categories")
+}
+
+model Tag {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  slug      String    @unique
+  createdAt DateTime  @default(now()) @map("created_at")
+  articles  Article[]
+
+  @@map("tags")
+}
+
+model Article {
+  id              Int       @id @default(autoincrement())
+  title           String
+  slug            String    @unique
+  content         String
+  status          String    @default("draft")
+  typeHebergement String?   @map("type_hebergement")
+  categoryId      Int?      @map("category_id")
+  category        Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tags            Tag[]
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@map("articles")
 }

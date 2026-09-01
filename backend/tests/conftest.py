@@ -121,6 +121,21 @@ def make_fake_article(
 
 
 # ---------------------------------------------------------------------------
+# Autouse fixture — prevents real DB connection attempts during lifespan
+# ---------------------------------------------------------------------------
+
+@pytest.fixture(scope="function", autouse=True)
+def mock_prisma_lifespan():
+    """
+    Prevents TestClient from connecting to the real database during FastAPI lifespan.
+    """
+    from prisma import Prisma
+    with patch.object(Prisma, "connect", new_callable=AsyncMock), \
+         patch.object(Prisma, "disconnect", new_callable=AsyncMock):
+        yield
+
+
+# ---------------------------------------------------------------------------
 # mock_prisma fixture — replaces the live Prisma client
 # ---------------------------------------------------------------------------
 

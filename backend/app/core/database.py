@@ -33,10 +33,9 @@ from app.core.config import settings
 # by calling `await prisma.connect()` inside the FastAPI lifespan handler.
 # ---------------------------------------------------------------------------
 prisma: Prisma = Prisma(
-    # datasource_url overrides the `url` in schema.prisma at runtime,
-    # allowing the same generated client to connect to different environments
-    # (dev / staging / prod) purely through environment variables.
-    datasource_url=settings.PRISMA_DATABASE_URL or None,
+    datasource={"url": settings.PRISMA_DATABASE_URL}
+    if settings.PRISMA_DATABASE_URL
+    else None,
 )
 
 
@@ -61,6 +60,10 @@ async def get_prisma() -> AsyncGenerator[Prisma, None]:
             return await db.article.find_many()
     """
     yield prisma
+
+
+# Backward-compatibility alias for legacy imports
+get_db = get_prisma
 
 
 # ---------------------------------------------------------------------------
