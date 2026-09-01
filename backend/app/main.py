@@ -1,20 +1,16 @@
 """
-B2 - FastAPI Application Entry Point (Minimal Bootstrap)
+B2 / B20 / B10 - FastAPI Application Entry Point
 Project : AdoptAI App Knowledge Base
 Author  : Oussama
-Stage   : 1 (Foundation)
+Stages  : 1 (Foundation), 3 (Core APIs & Errors)
 
-This is the minimal main.py for Stage 1.
-It verifies that:
-  - Settings load correctly from .env  (B2)
-  - Prisma connects and disconnects cleanly on startup/shutdown  (B2)
-  - CORS middleware is configured  (B2)
-  - A basic /health endpoint is available for infrastructure probes.
-
-Later stages will enrich this file with:
-  - Centralized exception handlers (B20)
-  - Versioned API router /api/v1 (B10, B12, B13, B15)
-  - Full OpenAPI metadata (B26)
+This module is the top-level application factory. It:
+  1. Loads settings from .env via Pydantic BaseSettings (B2).
+  2. Manages the Prisma client lifecycle via lifespan (B2).
+  3. Configures CORS middleware (B2).
+  4. Registers all centralized exception handlers (B20).
+  5. Mounts the versioned API router /api/v1 (B10).
+  6. Exposes a /health liveness probe.
 
 Run locally:
     uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
@@ -32,8 +28,10 @@ from typing import AsyncGenerator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.router import api_router
 from app.core.config import settings
 from app.core.database import prisma
+from app.core.error_handlers import register_exception_handlers
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -54,8 +52,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
     Manages the Prisma client lifecycle.
 
-    - STARTUP : opens the connection pool to Supabase/PostgreSQL.
-    - SHUTDOWN: gracefully closes all active connections.
+    STARTUP : opens the connection pool to Supabase/PostgreSQL.
+    SHUTDOWN: gracefully closes all active connections.
 
     FastAPI's `lifespan` parameter replaces the deprecated
     `@app.on_event("startup")` / `@app.on_event("shutdown")` pattern.
@@ -72,7 +70,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 # ---------------------------------------------------------------------------
-# B2 — Application factory
+# Application factory
 # ---------------------------------------------------------------------------
 def create_application() -> FastAPI:
     """
@@ -95,7 +93,7 @@ def create_application() -> FastAPI:
     )
 
     # ------------------------------------------------------------------
-    # CORS Middleware — origins loaded from ALLOWED_ORIGINS env var (B2)
+    # B2 — CORS Middleware
     # ------------------------------------------------------------------
     application.add_middleware(
         CORSMiddleware,
@@ -104,6 +102,18 @@ def create_application() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # ------------------------------------------------------------------
+    # B20 — Centralized exception handlers
+    # Registered before routes so all errors (including startup errors)
+    # are captured by our custom handlers.
+    # ------------------------------------------------------------------
+    register_exception_handlers(application)
+
+    # ------------------------------------------------------------------
+    # B10 — Versioned API router  (/api/v1/articles/...)
+    # ------------------------------------------------------------------
+    application.include_router(api_router, prefix=settings.API_V1_STR)
 
     return application
 
@@ -124,7 +134,7 @@ app: FastAPI = create_application()
     description=(
         "Returns `200 OK` with basic application metadata. "
         "Used by load balancers and uptime monitors to verify the process is alive. "
-        "Does **not** check the database connection (use /health/db for that)."
+        "Does **not** check the database connection."
     ),
     response_description="Application is running.",
 )
@@ -132,8 +142,8 @@ def health_check() -> dict:
     """
     **Liveness probe** — confirms the API process is running.
 
-    This endpoint intentionally avoids any database call so it remains fast
-    and reliable even when the database is temporarily unreachable.
+    This endpoint intentionally avoids any database call so it remains
+    fast and reliable even when the database is temporarily unreachable.
     """
     return {
         "status": "ok",

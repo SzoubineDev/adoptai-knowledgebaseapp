@@ -6,38 +6,34 @@ Stages  : 3 & 4 (Core APIs & Advanced Endpoints)
 
 This module defines the articles API router and implements:
   - GET    /articles/{id}  — B10  (Stage 3)
-  - PUT    /articles/{id}  — B12  (Stage 4)
-  - DELETE /articles/{id}  — B13  (Stage 4)
+  - PUT    /articles/{id}  — B12  (Stage 4, wired now, implemented in next stage)
+  - DELETE /articles/{id}  — B13  (Stage 4, wired now, implemented in next stage)
 
 Architecture notes
 ------------------
 * Router prefix `/articles` is applied in `app/api/router.py`.
-* `get_db` injects a per-request SQLAlchemy Session (Stage 1, database.py).
-* `article_repo` / `tag_repo` are Stage-2 singletons (crud/__init__.py).
+* `get_prisma()` injects the connected Prisma client (async, B2).
+* `article_repository` / `tag_repository` are Stage-2 Prisma singletons
+  (repositories/__init__.py).
 * All 404 paths raise `ArticleNotFoundException` (B19), caught and serialised
   by the centralised handler registered in `main.py` (B20).
-* Schema stubs (`ArticleResponseStub`, `ArticleUpdateStub`) are temporary.
-  See `app/schemas/stubs.py` for Safouane's (B7/B8) replacement guide.
+* Response schema is `ArticleResponse` (B3) — no more stubs.
 """
 
 import logging
 
 from fastapi import APIRouter, Body, Depends, Path, Response, status
-from sqlalchemy.orm import Session
+from prisma import Prisma
 
-from app.core.database import get_db
+from app.core.database import get_prisma
 from app.core.exceptions import ArticleNotFoundException, ArticleSlugConflictException
-from app.crud import article_repo, tag_repo
-from app.models.article import ArticleStatus
-from app.schemas.stubs import ArticleResponseStub, ArticleUpdateStub
+from app.repositories import article_repository, tag_repository
+from app.schemas.article import ArticleResponse, ArticleUpdate
 
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Router
-# ---------------------------------------------------------------------------
-# tags=["Articles"] groups all endpoints in this module under a single section
-# in the auto-generated OpenAPI / Swagger UI documentation.
 # ---------------------------------------------------------------------------
 router = APIRouter(tags=["Articles"])
 
@@ -48,13 +44,13 @@ router = APIRouter(tags=["Articles"])
 
 @router.get(
     "/{article_id}",
-    response_model=ArticleResponseStub,   # TODO(Safouane/B7): replace with ArticleResponse
+    response_model=ArticleResponse,
     status_code=status.HTTP_200_OK,
     summary="Retrieve an article by ID",
     description=(
         "Fetches a single knowledge-base article by its numeric primary key. "
-        "The response includes the article's full content, its parent category, "
-        "and all associated tags. Returns **404** if the article does not exist."
+        "The response includes the article's full content, its parent **category**, "
+        "and all associated **tags**. Returns **404** if the article does not exist."
     ),
     responses={
         200: {"description": "Article found and returned successfully."},
@@ -74,54 +70,58 @@ router = APIRouter(tags=["Articles"])
         },
     },
 )
-def get_article_by_id(
+async def get_article_by_id(
     article_id: int = Path(
         ...,
-        ge=1,                           # Must be a positive integer ≥ 1.
+        ge=1,
         description="The numeric primary key of the article to retrieve.",
-        example=1,
+        examples=[1],
     ),
-    db: Session = Depends(get_db),
-) -> ArticleResponseStub:
+    db: Prisma = Depends(get_prisma),
+) -> ArticleResponse:
     """
     **GET /articles/{article_id}**
 
     Retrieves a knowledge-base article by its numeric primary key.
 
     - **article_id**: Must be a positive integer (`>= 1`). Non-integer or
-      zero/negative values are rejected by FastAPI's path validation with a
-      422 error before this function is even called.
+      zero/negative values are rejected by FastAPI's path validation (422)
+      before this handler is called.
 
-    - On success, returns a full article object including its parent
-      `category` and associated `tags` (both eagerly loaded — no N+1 queries).
+    - On success, returns a full `ArticleResponse` with nested `category`
+      and `tags` (loaded in the same Prisma query — no N+1).
 
-    - Raises `ArticleNotFoundException` (→ 404) if no article with the given
-      id exists. The exception is caught by the centralised handler registered
-      in `main.py` and converted to the standard error JSON envelope.
+    - Raises `ArticleNotFoundException` (B19 → 404) if no article with the
+      given id exists. The exception is caught by the centralised handler
+      registered in `main.py` (B20) and serialised into the standard error
+      JSON envelope.
     """
-    logger.info("GET /articles/%s — fetching article", article_id)
+    logger.info("GET /articles/%s — fetching article with relations", article_id)
 
-    article = article_repo.get_with_relations(db, article_id)
+    article = await article_repository.get_with_relations(db, article_id)
 
     if article is None:
-        logger.warning("GET /articles/%s — article not found", article_id)
-        raise ArticleNotFoundException(article_id)   # B19 – 404 handling
+        logger.warning("GET /articles/%s — article not found (404)", article_id)
+        raise ArticleNotFoundException(article_id)   # B19
 
-    logger.info("GET /articles/%s — found article slug=%r", article_id, article.slug)
-    return article  # type: ignore[return-value]  # Pydantic's from_attributes handles ORM → schema
+    logger.info(
+        "GET /articles/%s — found: slug=%r status=%r",
+        article_id, article.slug, article.status,
+    )
+    return ArticleResponse.model_validate(article)
 
 
 # ---------------------------------------------------------------------------
-# PUT /articles/{id}  — B12
+# PUT /articles/{id}  — B12 (implemented in Stage 4)
 # ---------------------------------------------------------------------------
 
 @router.put(
     "/{article_id}",
-    response_model=ArticleResponseStub,   # TODO(Safouane/B7): replace with ArticleResponse
+    response_model=ArticleResponse,
     status_code=status.HTTP_200_OK,
     summary="Update an article by ID",
     description=(
-        "Performs a partial update on a knowledge-base article. "
+        "Performs a **partial update** on a knowledge-base article. "
         "Only the fields included in the request body are modified; "
         "omitted fields retain their current values. "
         "Returns the full updated article on success. "
@@ -160,86 +160,70 @@ def get_article_by_id(
         },
     },
 )
-def update_article(
+async def update_article(
     article_id: int = Path(
         ...,
         ge=1,
         description="The numeric primary key of the article to update.",
-        example=1,
+        examples=[1],
     ),
-    body: ArticleUpdateStub = Body(   # TODO(Safouane/B8): replace with ArticleUpdate
+    body: ArticleUpdate = Body(
         ...,
-        description="Fields to update. All fields are optional; omit any field to keep its current value.",
+        description=(
+            "Fields to update. All fields are optional; omit any field to "
+            "keep its current value. Providing `tag_ids` **replaces** the "
+            "current tag set entirely."
+        ),
     ),
-    db: Session = Depends(get_db),
-) -> ArticleResponseStub:
+    db: Prisma = Depends(get_prisma),
+) -> ArticleResponse:
     """
-    **PUT /articles/{article_id}**
+    **PUT /articles/{article_id}** — B12
 
     Partially updates a knowledge-base article.
 
-    - **article_id**: Positive integer primary key of the article to update.
-    - **body**: JSON object with one or more updatable fields (`title`, `slug`,
-      `content`, `status`, `category_id`, `tag_ids`). Any omitted field is
-      left unchanged.
-
     **Validation flow**:
-    1. Fetch the article → 404 if not found.
-    2. If a new `slug` is supplied, verify it is not already used by a
-       *different* article → 409 if conflict.
-    3. If `tag_ids` are supplied, resolve them to Tag ORM instances.
-    4. Call `article_repo.update()`, flush, commit.
-    5. Re-fetch with relations eagerly loaded and return.
+    1. Confirm the article exists → 404 if not.
+    2. If a new `slug` is supplied, verify it is not used by another
+       article → 409 if conflict.
+    3. Delegate the update to `article_repository.update()` (Prisma).
+    4. Return the updated article with relations.
     """
-    logger.info("PUT /articles/%s — updating article", article_id)
+    logger.info("PUT /articles/%s — update requested", article_id)
 
-    # Step 1: Confirm article exists.
-    article = article_repo.get(db, article_id)
-    if article is None:
-        logger.warning("PUT /articles/%s — article not found", article_id)
+    # Step 1: Confirm existence.
+    existing = await article_repository.get(db, article_id)
+    if existing is None:
+        logger.warning("PUT /articles/%s — article not found (404)", article_id)
         raise ArticleNotFoundException(article_id)
 
-    # Step 2: Slug uniqueness check (only when a new slug is supplied).
-    if body.slug is not None and body.slug != article.slug:
-        if article_repo.slug_exists(db, body.slug, exclude_id=article_id):
+    # Step 2: Slug uniqueness guard.
+    if body.slug is not None and body.slug != existing.slug:
+        if await article_repository.slug_exists(db, body.slug, exclude_id=article_id):
             logger.warning(
                 "PUT /articles/%s — slug conflict: %r", article_id, body.slug
             )
             raise ArticleSlugConflictException(body.slug)
 
-    # Step 3: Resolve tag_ids → Tag ORM instances (if provided).
-    resolved_tags = None
-    if body.tag_ids is not None:
-        resolved_tags = list(tag_repo.get_by_ids(db, body.tag_ids))
-
-    # Step 4: Apply the partial update.
-    # Convert status string → ArticleStatus enum if provided.
-    new_status = None
-    if body.status is not None:
-        new_status = ArticleStatus(body.status)
-
-    article_repo.update(
+    # Step 3: Delegate update to Prisma repository.
+    updated = await article_repository.update(
         db,
-        article=article,
+        article_id=article_id,
         title=body.title,
         slug=body.slug,
         content=body.content,
-        status=new_status,
+        status=body.status,
+        type_hebergement=body.type_hebergement,
         category_id=body.category_id,
-        tags=resolved_tags,
+        tag_ids=body.tag_ids,
     )
 
-    # Commit after successful update.
-    db.commit()
-
-    # Step 5: Re-fetch with relations for the full response payload.
-    updated = article_repo.get_with_relations(db, article_id)
     logger.info("PUT /articles/%s — updated successfully", article_id)
-    return updated  # type: ignore[return-value]
+    return ArticleResponse.model_validate(updated)
 
 
 # ---------------------------------------------------------------------------
-# DELETE /articles/{id}  — B13
+# DELETE /articles/{id}  — B13 (implemented in Stage 4)
 # ---------------------------------------------------------------------------
 
 @router.delete(
@@ -269,43 +253,39 @@ def update_article(
         },
     },
 )
-def delete_article(
+async def delete_article(
     article_id: int = Path(
         ...,
         ge=1,
         description="The numeric primary key of the article to delete.",
-        example=1,
+        examples=[1],
     ),
-    db: Session = Depends(get_db),
+    db: Prisma = Depends(get_prisma),
 ) -> Response:
     """
-    **DELETE /articles/{article_id}**
+    **DELETE /articles/{article_id}** — B13
 
     Permanently removes a knowledge-base article from the database.
 
-    - **article_id**: Positive integer primary key of the article to delete.
     - The `article_tags` join-table rows are removed automatically by the
       PostgreSQL `ON DELETE CASCADE` constraint — no manual cleanup needed.
     - Returns HTTP **204 No Content** with an empty body on success.
-      (RFC 9110 §15.3.5 — clients must not expect a body on 204.)
-    - Raises `ArticleNotFoundException` (→ 404) if no article with the
+    - Raises `ArticleNotFoundException` (B19 → 404) if no article with the
       given id exists.
     """
-    logger.info("DELETE /articles/%s — deleting article", article_id)
+    logger.info("DELETE /articles/%s — deletion requested", article_id)
 
-    # Step 1: Confirm the article exists before attempting deletion.
-    article = article_repo.get(db, article_id)
-    if article is None:
-        logger.warning("DELETE /articles/%s — article not found", article_id)
+    # Step 1: Confirm existence before attempting deletion.
+    existing = await article_repository.get(db, article_id)
+    if existing is None:
+        logger.warning("DELETE /articles/%s — article not found (404)", article_id)
         raise ArticleNotFoundException(article_id)
 
-    # Step 2: Delete + commit.
-    article_repo.delete(db, article=article)
-    db.commit()
+    # Step 2: Delete via Prisma repository.
+    await article_repository.delete(db, article_id=article_id)
 
     logger.info("DELETE /articles/%s — deleted successfully", article_id)
 
-    # Return an explicit empty Response with 204 so FastAPI does not attempt
-    # to serialise the None return value (which would cause a runtime error
-    # since response_model is absent on this route).
+    # Return an explicit empty 204 Response so FastAPI does not attempt
+    # to serialise None (which would cause a runtime error).
     return Response(status_code=status.HTTP_204_NO_CONTENT)
