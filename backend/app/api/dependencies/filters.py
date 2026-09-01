@@ -28,27 +28,27 @@ In `app/api/endpoints/articles.py` (or his own endpoint file), Safouane
 adds the dependency to any listing route:
 
     from fastapi import APIRouter, Depends
-    from sqlalchemy.orm import Session
+    from prisma import Prisma
 
     from app.api.dependencies.filters import CategoryFilterParams
-    from app.core.database import get_db
-    from app.crud import article_repo
+    from app.core.database import get_prisma
+    from app.repositories import article_repository
 
     router = APIRouter()
 
     @router.get("/", ...)
-    def list_articles(
+    async def list_articles(
         filters: CategoryFilterParams = Depends(),
-        db: Session = Depends(get_db),
+        db: Prisma = Depends(get_prisma),
     ):
-        articles = article_repo.get_all(
+        articles = await article_repository.get_many(
             db,
             skip=filters.skip,
             limit=filters.limit,
             status=filters.status,
             category_id=filters.category_id,
         )
-        total = article_repo.count(
+        total = await article_repository.count(
             db,
             status=filters.status,
             category_id=filters.category_id,
@@ -64,7 +64,7 @@ from typing import Optional
 
 from fastapi import Query
 
-from app.models.article import ArticleStatus
+from app.schemas.article import ArticleStatus
 
 
 # ---------------------------------------------------------------------------
