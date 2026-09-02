@@ -5,11 +5,6 @@ generator client {
   provider = "prisma-client-js"
 }
 
-generator py_client {
-  provider  = "prisma-client-py"
-  interface = "asyncio"
-}
-
 datasource db {
   provider = "postgresql"
   url      = env("PRISMA_DATABASE_URL")
@@ -168,40 +163,58 @@ model Utilisateur {
   @@map("utilisateur")
 }
 
-model Category {
-  id          Int       @id @default(autoincrement())
-  name        String    @unique
-  slug        String    @unique
-  description String?
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-  articles    Article[]
+// =============================================================================
+// AUTH MODULE — Oussama (Feature Auth)
+// =============================================================================
+// The User model below is the authentication identity store.
+// It is intentionally SEPARATE from the legacy `Utilisateur` model above,
+// which belongs to the inventory/ITSM schema and must not be altered.
+//
+// RBAC: The `role` field uses RoleEnum to gate access in future middleware.
+//       Hierarchy (highest → lowest): ADMINISTRATEUR > RESPONSABLE_IT
+//                                   > AGENT_HELPDESK > UTILISATEUR
+// =============================================================================
 
-  @@map("categories")
+/// Enum describing the user's role for Role-Based Access Control (RBAC).
+/// Must stay in sync with the RoleEnum in app/schemas/user.py.
+enum RoleEnum {
+  ADMINISTRATEUR
+  RESPONSABLE_IT
+  AGENT_HELPDESK
+  UTILISATEUR
+
+  @@map("role_enum")
 }
 
-model Tag {
-  id        Int       @id @default(autoincrement())
-  name      String    @unique
-  slug      String    @unique
-  createdAt DateTime  @default(now()) @map("created_at")
-  articles  Article[]
-
-  @@map("tags")
-}
-
-model Article {
+/// Authentication identity for the AdoptAI knowledge-base application.
+/// Stores credentials and profile data — never exposes hashed_password via API.
+model User {
+  /// Surrogate primary key — auto-incremented integer.
   id              Int       @id @default(autoincrement())
-  title           String
-  slug            String    @unique
-  content         String
-  status          String    @default("draft")
-  typeHebergement String?   @map("type_hebergement")
-  categoryId      Int?      @map("category_id")
-  category        Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  tags            Tag[]
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
 
-  @@map("articles")
+  /// Unique email address used as the login identifier.
+  /// Indexed automatically by Prisma via `@unique`.
+  email           String    @unique
+
+  /// bcrypt hash of the user's password.
+  /// The plain-text password is NEVER stored. Hashing is done in core/security.py.
+  hashedPassword  String    @map("hashed_password")
+
+  /// User's family name.
+  nom             String
+
+  /// User's given name.
+  prenom          String
+
+  /// Role for RBAC. Defaults to UTILISATEUR (least-privileged role).
+  role            RoleEnum  @default(UTILISATEUR)
+
+  /// Whether the account is active. Inactive users cannot log in.
+  /// Defaults to true so newly registered users are immediately active.
+  isActive        Boolean   @default(true) @map("is_active")
+
+  /// Timestamp of account creation. Set automatically by the database.
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  @@map("user")
 }
