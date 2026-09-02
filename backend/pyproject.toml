@@ -15,6 +15,7 @@ dependencies = [
     # testing libs if needed
 ]
 
-
+[tool.setuptools.packages.find]
+include = ["app*", "prisma*"]
 [tool.fastapi]
 entrypoint = "app.main:app"
