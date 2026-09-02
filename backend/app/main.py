@@ -1,8 +1,8 @@
 """
-B2 / B20 / B10 / B26 - FastAPI Application Entry Point with Full OpenAPI Metadata
+B2 / B20 / B10 / B26 / Auth Étape 4 - FastAPI Application Entry Point
 Project : AdoptAI App Knowledge Base
 Author  : Oussama
-Stages  : 1 (Foundation), 3 (Core APIs & Errors), 5 (Docs & Tests)
+Stages  : 1 (Foundation), 3 (Core APIs & Errors), 5 (Docs & Tests), Feature Auth
 
 This module is the top-level application factory. It:
   1. Loads settings from .env via Pydantic BaseSettings (B2).
@@ -350,6 +350,30 @@ def custom_openapi() -> dict:
             "description": "Production server (placeholder — update before go-live)",
         },
     ]
+
+    # ------------------------------------------------------------------
+    # Auth Étape 4 — OAuth2 securitySchemes
+    # ------------------------------------------------------------------
+    # Injecting this block makes Swagger UI display the 🔒 padlock on
+    # protected operations and enables the "Authorize" button to send
+    # the Bearer token automatically in "Try it out" requests.
+    # FastAPI generates the `security` array on each operation from the
+    # OAuth2PasswordBearer declared in app/dependencies/auth.py, but the
+    # top-level `securitySchemes` component must be present for ReDoc to
+    # render the security section correctly.
+    # ------------------------------------------------------------------
+    schema.setdefault("components", {})
+    schema["components"]["securitySchemes"] = {
+        "OAuth2PasswordBearer": {
+            "type": "oauth2",
+            "flows": {
+                "password": {
+                    "tokenUrl": "/api/v1/auth/login",
+                    "scopes": {},
+                }
+            },
+        }
+    }
 
     app.openapi_schema = schema
     return app.openapi_schema
