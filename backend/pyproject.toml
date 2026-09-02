@@ -4,8 +4,17 @@ version = "0.1.0"
 requires-python = ">=3.12,<3.14"   
 
 dependencies = [
-    "fastapi[standard]",
+    "fastapi[standard]==0.115.5",
+    "sqlalchemy==2.0.36",
+    "psycopg2-binary==2.9.10",
+    "pydantic==2.10.3",
+    "pydantic-settings==2.6.1",
+    "python-dotenv==1.0.1",
+    "python-slugify==8.0.4",
+    "prisma",
+    # testing libs if needed
 ]
+
 
 [tool.fastapi]
 entrypoint = "app.main:app"
