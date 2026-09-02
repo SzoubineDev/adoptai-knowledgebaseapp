@@ -49,10 +49,8 @@ export default function DashboardPage() {
       />
 
       <PageStatus loading={loading} error={error}>
-        {/* MOBILE: reduced padding on small screens */}
-        <main className="p-4 md:p-8 space-y-6 md:space-y-8">
-          {/* Stats grid already responsive: 1 col mobile, 2 cols tablet, 4 cols desktop */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
+        <main className="p-8 space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
             <StatCard
               title="Applications Inventoriées"
               value={stats?.applicationCount ?? 0}
@@ -83,11 +81,8 @@ export default function DashboardPage() {
           </div>
 
           <div>
-            {/* MOBILE: smaller heading on small screens */}
-            <h2 className="text-base md:text-lg font-bold text-slate-800 mb-4">
-              Sources de Données Connectées (Phase 0 & 0')
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
+            <h2 className="text-lg font-bold text-slate-800 mb-4">Sources de Données Connectées (Phase 0 & 0')</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
               {dataSources.map((source) => (
                 <Card key={source.id} className="hover:border-slate-300 transition-all">
                   <div className="flex items-center justify-between mb-2">
@@ -118,9 +113,8 @@ export default function DashboardPage() {
               </Link>
             }
           >
-            {/* MOBILE: allow horizontal scroll; table has min-width to avoid squishing */}
-            <div className="overflow-x-auto -mx-4 md:mx-0">
-              <table className="w-full min-w-[600px] md:min-w-0 text-left text-sm text-slate-600">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm text-slate-600">
                 <thead className="bg-slate-50 text-xs uppercase text-slate-500 border-y border-slate-200">
                   <tr>
                     <th className="py-3 px-4">Code / Nom</th>
