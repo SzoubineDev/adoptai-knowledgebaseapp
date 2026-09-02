@@ -2,7 +2,7 @@
 B2 - Application Settings & Environment Variable Configuration
 Project : AdoptAI App Knowledge Base
 Author  : Oussama
-Stage   : 1 (Foundation)
+Stage   : 1 (Foundation), Feature Auth (Étapes 1-4)
 
 Loads and validates all environment variables at startup using Pydantic v2
 BaseSettings. Any missing or malformed required variable raises a clear
@@ -46,28 +46,21 @@ class Settings(BaseSettings):
     # CORS – accepted as a comma-separated string from the env file and
     # parsed into a list of strings by the validator below.
     # ------------------------------------------------------------------
-    ALLOWED_ORIGINS: str | List[str] = ["http://localhost:3000"]
+    ALLOWED_ORIGINS: List[str] = ["http://localhost:3000"]
 
     @field_validator("ALLOWED_ORIGINS", mode="before")
     @classmethod
-    def parse_allowed_origins(cls, value: Any) -> List[str]:
+    def parse_allowed_origins(cls, value: str | List[str]) -> List[str]:
         """Accept either a Python list OR a comma-separated string from .env."""
         if isinstance(value, str):
-            if value.startswith("[") and value.endswith("]"):
-                import json
-                try:
-                    return json.loads(value)
-                except Exception:
-                    pass
             return [origin.strip() for origin in value.split(",") if origin.strip()]
-        if isinstance(value, list):
-            return [str(v).strip() for v in value]
-        return ["http://localhost:3000"]
+        return value
 
     # ------------------------------------------------------------------
-    # Database – SQLAlchemy / PostgreSQL
+    # Database – SQLAlchemy (synchronous, psycopg2 driver)
+    # Required – no default so startup fails loudly if missing.
     # ------------------------------------------------------------------
-    DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/postgres"
+    DATABASE_URL: str
 
     # ------------------------------------------------------------------
     # Database – Prisma Client Python
@@ -76,9 +69,15 @@ class Settings(BaseSettings):
     PRISMA_DATABASE_URL: str = ""
 
     # ------------------------------------------------------------------
-    # Security (reserved for future auth stages – not used in Stage 1)
+    # Security — JWT & Password Hashing (Feature Auth — Oussama)
+    # SECRET_KEY    : Must be overridden in production with a strong random
+    #                 value (e.g., `openssl rand -hex 32`).
+    # ALGORITHM     : JWT signing algorithm. HS256 is symmetric (shared secret).
+    #                 Switch to RS256 for asymmetric signing in the future.
+    # ACCESS_TOKEN_EXPIRE_MINUTES : Token lifetime in minutes.
     # ------------------------------------------------------------------
     SECRET_KEY: str = "change-me-in-production"
+    ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
     # ------------------------------------------------------------------
