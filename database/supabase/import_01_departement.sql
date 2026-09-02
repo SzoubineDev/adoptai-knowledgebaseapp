@@ -1,0 +1,22 @@
+-- Import table departement (20 valeurs uniques, dedupliquees et harmonisees en francais)
+INSERT INTO departement (nom_departement) VALUES
+    ('Commercial'),
+    ('Data Science'),
+    ('Design'),
+    ('Direction'),
+    ('Engineering'),
+    ('Facilities'),
+    ('Finance'),
+    ('IT'),
+    ('Juridique'),
+    ('Manufacturing'),
+    ('Marketing'),
+    ('Opérations'),
+    ('R&D'),
+    ('RH'),
+    ('Reception'),
+    ('Retail'),
+    ('Supply Chain'),
+    ('Support'),
+    ('Sécurité'),
+    ('Video Production');

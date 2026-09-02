@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Node / Prisma
+node_modules/
+database/prisma/node_modules/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Large data files (uncomment if not needed)
+# sap data.xlsx
+*.xlsx
+
+# Misc
+.DS_Store
