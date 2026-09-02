@@ -13,6 +13,17 @@ pydantic-settings==2.6.1
 python-dotenv==1.0.1
 python-slugify==8.0.4
 
+# Security & Authentication (Feature Auth — Oussama)
+# passlib[bcrypt]       : Password hashing using bcrypt algorithm.
+#                         bcrypt extra installs the C-accelerated bcrypt backend.
+passlib[bcrypt]==1.7.4
+# python-jose[cryptography] : JWT creation, signing, and verification.
+#                             cryptography extra provides RS256/HS256 support.
+python-jose[cryptography]==3.3.0
+# email-validator       : Validates email format in Pydantic EmailStr fields.
+#                         Required for UserCreate / UserLogin schema validation.
+email-validator==2.2.0
+
 # Testing (Stage 5 — B28, B30)
 pytest==8.3.4
 pytest-asyncio==0.24.0

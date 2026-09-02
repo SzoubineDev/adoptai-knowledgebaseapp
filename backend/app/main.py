@@ -97,6 +97,19 @@ OPENAPI_TAGS: list[dict] = [
         "description": "Indicateurs IAM et réseau calculés à partir de l'inventaire.",
     },
     {
+        "name": "Auth",
+        "description": (
+            "**Authentication & Identity** — JWT Bearer Token flow.\n\n"
+            "| Method | Path | Description |\n"
+            "|--------|------|-------------|\n"
+            "| `POST` | `/api/v1/auth/register` | Create a new user account |\n"
+            "| `POST` | `/api/v1/auth/login` | Obtain a JWT access token |\n"
+            "| `GET`  | `/api/v1/auth/me` | Return the currently authenticated user (🔒 protected) |\n\n"
+            "Tokens are signed HS256 JWTs. Include the token in every protected request:\n"
+            "```\nAuthorization: Bearer <token>\n```"
+        ),
+    },
+    {
         "name": "Health",
         "description": (
             "Infrastructure health and readiness probes.\n\n"
@@ -133,8 +146,17 @@ Breaking changes will be introduced under a new version prefix (`/api/v2`, etc.)
 
 ### Authentication
 
-> ⚠️ **Authentication is reserved for a future release.**
-> All endpoints are currently open for internal development and testing.
+This API uses **JWT Bearer Token** authentication.
+
+1. Call `POST /api/v1/auth/register` to create an account.
+2. Call `POST /api/v1/auth/login` to obtain a token.
+3. Pass the token in the `Authorization` header on protected routes:
+
+```
+Authorization: Bearer <your_token>
+```
+
+Token lifetime is controlled by `ACCESS_TOKEN_EXPIRE_MINUTES` in `.env` (default: 30 min).
 
 ### Error format
 
