@@ -5,6 +5,7 @@ import { Card, Badge } from '@/components/ui/Cards';
 import { PageStatus } from '@/components/ui/PageStatus';
 import Link from 'next/link';
 import { fetchApplications } from '@/services/dataService';
+import ApplicationForm from '@/components/ui/ApplicationForm'; // New component
 
 export default function ApplicationsPage() {
   const [applications, setApplications] = useState([]);
@@ -13,6 +14,7 @@ export default function ApplicationsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSource, setSelectedSource] = useState('All');
   const [selectedCriticality, setSelectedCriticality] = useState('All');
+  const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -47,58 +49,72 @@ export default function ApplicationsPage() {
     return matchesSearch && matchesSource && matchesCriticality;
   });
 
+  const handleAddApplication = (newApp) => {
+    // Add the new app to the list (in a real app you'd POST to backend)
+    setApplications((prev) => [...prev, newApp]);
+    setShowForm(false);
+  };
+
   return (
     <>
-
       <main className="p-8 space-y-6">
         {/* Filters and Controls */}
         <Card>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="md:col-span-2">
-              <label className="block text-xs font-semibold text-slate-600 mb-1">
-                Recherche globale
-              </label>
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Rechercher par nom, code ou description..."
-                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 flex-1">
+              <div className="md:col-span-2">
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
+                  Recherche globale
+                </label>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Rechercher par nom, code ou description..."
+                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
+                  Source de Données
+                </label>
+                <select
+                  value={selectedSource}
+                  onChange={(e) => setSelectedSource(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="All">Toutes les sources</option>
+                  <option value="SAP">SAP</option>
+                  <option value="Apple">Apple</option>
+                  <option value="ServiceNow">ServiceNow</option>
+                  <option value="HelpDesk">HelpDesk</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
+                  Niveau de Criticité
+                </label>
+                <select
+                  value={selectedCriticality}
+                  onChange={(e) => setSelectedCriticality(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="All">Toutes les criticités</option>
+                  <option value="Critique">Critique</option>
+                  <option value="Élevée">Élevée</option>
+                  <option value="Moyenne">Moyenne</option>
+                </select>
+              </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">
-                Source de Données
-              </label>
-              <select
-                value={selectedSource}
-                onChange={(e) => setSelectedSource(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="All">Toutes les sources</option>
-                <option value="SAP">SAP</option>
-                <option value="Apple">Apple</option>
-                <option value="ServiceNow">ServiceNow</option>
-                <option value="HelpDesk">HelpDesk</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">
-                Niveau de Criticité
-              </label>
-              <select
-                value={selectedCriticality}
-                onChange={(e) => setSelectedCriticality(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="All">Toutes les criticités</option>
-                <option value="Critique">Critique</option>
-                <option value="Élevée">Élevée</option>
-                <option value="Moyenne">Moyenne</option>
-              </select>
-            </div>
+            <button
+              onClick={() => setShowForm(true)}
+              className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
+            >
+              <span className="mr-1">＋</span> Ajouter une application
+            </button>
           </div>
         </Card>
 
@@ -167,6 +183,14 @@ export default function ApplicationsPage() {
           </PageStatus>
         </Card>
       </main>
+
+      {/* Application Form Modal */}
+      {showForm && (
+        <ApplicationForm
+          onClose={() => setShowForm(false)}
+          onSubmit={handleAddApplication}
+        />
+      )}
     </>
   );
 }
