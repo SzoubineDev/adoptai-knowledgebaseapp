@@ -1,32 +1,22 @@
 @import "tailwindcss";
+:root {
+  /* Professional palette */
+  --color-primary: #1e40af;      /* deep blue */
+  --color-primary-hover: #1e3a8a;
+  --color-secondary: #3b82f6;    /* bright blue */
+  --color-accent: #10b981;       /* green for success */
+  --color-background: #f8fafc;   /* light gray */
+  --color-surface: #ffffff;      /* white for cards/header */
+  --color-text: #1e293b;         /* dark slate */
+  --color-text-muted: #64748b;   /* medium gray */
+  --color-sidebar-bg: #0f172a;   /* dark navy */
+  --color-sidebar-text: #cbd5e1;
+  --color-sidebar-active: #1e40af;
+}
 
-@theme {
-  /* Primary */
-  --color-primary: #2563eb;
-  --color-primary-hover: #1d4ed8;
-  --color-primary-light: #dbeafe;
-
-  /* Accent */
-  --color-accent: #0ea5e9;
-  --color-accent-light: #e0f2fe;
-
-  /* Background */
-  --color-background: #f8fafc;
-  --color-surface: #ffffff;
-  --color-surface-muted: #f1f5f9;
-
-  /* Text */
-  --color-foreground: #0f172a;
-  --color-text-secondary: #475569;
-  --color-text-muted: #64748b;
-
-  /* Borders */
-  --color-border: #e2e8f0;
-
-  /* Status */
-  --color-success: #16a34a;
-  --color-warning: #f59e0b;
-  --color-error: #dc2626;
+body {
+  background-color: var(--color-background);
+  color: var(--color-text);
 }
 
 html,
@@ -94,4 +84,55 @@ body {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+/* Sidebar */
+.sidebar, 
+aside {
+  background-color: var(--color-sidebar-bg) !important;
+  color: var(--color-sidebar-text) !important;
+}
+
+.sidebar a, 
+aside a {
+  color: var(--color-sidebar-text) !important;
+}
+
+.sidebar a:hover {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.sidebar a.active {
+  background-color: var(--color-sidebar-active) !important;
+  color: white !important;
+}
+
+/* Header */
+.header, 
+header {
+  background-color: var(--color-surface) !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Buttons / Links / Accents */
+a, .link {
+  color: var(--color-primary) !important;
+}
+a:hover {
+  color: var(--color-primary-hover) !important;
+}
+
+/* Badges (success, primary) */
+.badge-success {
+  background-color: var(--color-accent) !important;
+  color: white !important;
+}
+.badge-primary {
+  background-color: var(--color-primary) !important;
+  color: white !important;
+}
+
+/* Cards */
+.card, 
+[class*="bg-white"] {
+  background-color: var(--color-surface) !important;
 }

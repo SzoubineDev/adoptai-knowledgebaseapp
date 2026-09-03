@@ -34,11 +34,6 @@ export default function DataSourcesPage() {
 
   return (
     <>
-      <Header
-        title="Sources de Données — Discovery & Connecteurs"
-        subtitle="Recensement des inventaires Apple, SAP, ServiceNow et HelpDesk (Étape 0 du Cahier des Charges)"
-      />
-
       <main className="p-8 space-y-6">
         <Card className="bg-slate-900 text-white border-none">
           <div className="flex items-start justify-between">
