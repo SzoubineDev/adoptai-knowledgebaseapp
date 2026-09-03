@@ -5,7 +5,8 @@ import { Card, Badge } from '@/components/ui/Cards';
 import { PageStatus } from '@/components/ui/PageStatus';
 import Link from 'next/link';
 import { fetchApplications } from '@/services/dataService';
-import ApplicationForm from '@/components/ui/ApplicationForm'; // New component
+import ApplicationForm from '@/components/ui/ApplicationForm';
+import { Pencil, Trash2 } from 'lucide-react';
 
 export default function ApplicationsPage() {
   const [applications, setApplications] = useState([]);
@@ -15,6 +16,8 @@ export default function ApplicationsPage() {
   const [selectedSource, setSelectedSource] = useState('All');
   const [selectedCriticality, setSelectedCriticality] = useState('All');
   const [showForm, setShowForm] = useState(false);
+  const [editingApp, setEditingApp] = useState(null);
+  const [deletingApp, setDeletingApp] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -49,10 +52,26 @@ export default function ApplicationsPage() {
     return matchesSearch && matchesSource && matchesCriticality;
   });
 
-  const handleAddApplication = (newApp) => {
-    // Add the new app to the list (in a real app you'd POST to backend)
-    setApplications((prev) => [...prev, newApp]);
+  // Handle both add and edit
+  const handleSaveApplication = (appData) => {
+    if (editingApp) {
+      // Update existing application
+      setApplications((prev) =>
+        prev.map((app) => (app.id === editingApp.id ? { ...app, ...appData } : app))
+      );
+    } else {
+      // Add new application
+      setApplications((prev) => [...prev, appData]);
+    }
     setShowForm(false);
+    setEditingApp(null);
+  };
+
+  const handleDeleteApplication = () => {
+    if (deletingApp) {
+      setApplications((prev) => prev.filter((app) => app.id !== deletingApp.id));
+      setDeletingApp(null);
+    }
   };
 
   return (
@@ -110,7 +129,10 @@ export default function ApplicationsPage() {
             </div>
 
             <button
-              onClick={() => setShowForm(true)}
+              onClick={() => {
+                setEditingApp(null);
+                setShowForm(true);
+              }}
               className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
             >
               <span className="mr-1">＋</span> Ajouter une application
@@ -160,14 +182,38 @@ export default function ApplicationsPage() {
                         </Badge>
                       </td>
                       <td className="py-3.5 px-4 text-xs font-mono">{app.iamStatus}</td>
-                      <td className="py-3.5 px-4 text-right">
-                        <Link
-                          href={`/applications/${app.id}`}
-                          className="inline-flex items-center px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md text-xs font-medium transition-colors"
-                        >
-                          Détails
-                        </Link>
-                      </td>
+                   <td className="py-3.5 px-4">
+  <div className="flex items-center justify-center gap-3">
+    {/* Edit Button – Blue, larger */}
+    <button
+      onClick={() => {
+        setEditingApp(app);
+        setShowForm(true);
+      }}
+      className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
+      title="Modifier"
+    >
+      <Pencil size={20} />
+    </button>
+
+    {/* Delete Button – Red, larger */}
+    <button
+      onClick={() => setDeletingApp(app)}
+      className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+      title="Supprimer"
+    >
+      <Trash2 size={20} />
+    </button>
+
+    {/* Détails Link (optionnel, gardé pour information) */}
+    <Link
+      href={`/applications/${app.id}`}
+      className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md text-xs font-medium transition-colors"
+    >
+      Détails
+    </Link>
+  </div>
+</td>
                     </tr>
                   ))}
                   {filteredApps.length === 0 && !loading && (
@@ -184,12 +230,42 @@ export default function ApplicationsPage() {
         </Card>
       </main>
 
-      {/* Application Form Modal */}
+      {/* Application Form Modal (Add / Edit) */}
       {showForm && (
         <ApplicationForm
-          onClose={() => setShowForm(false)}
-          onSubmit={handleAddApplication}
+          onClose={() => {
+            setShowForm(false);
+            setEditingApp(null);
+          }}
+          onSubmit={handleSaveApplication}
+          initialData={editingApp}
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingApp && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-sm p-6">
+            <h3 className="text-lg font-semibold text-slate-800 mb-2">Confirmer la suppression</h3>
+            <p className="text-sm text-slate-600 mb-4">
+              Voulez-vous vraiment supprimer l'application <strong>{deletingApp.name}</strong> ?
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setDeletingApp(null)}
+                className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleDeleteApplication}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+              >
+                Supprimer
+              </button>
+            </div>
+          </Card>
+        </div>
       )}
     </>
   );

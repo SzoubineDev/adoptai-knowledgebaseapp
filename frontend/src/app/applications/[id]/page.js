@@ -7,6 +7,7 @@ import Header from '@/components/layout/Header';
 import Link from 'next/link';
 import { fetchApplicationById } from '@/services/dataService';
 
+
 export default function ApplicationDetailPage({ params }) {
   const resolvedParams = use(params);
   const [app, setApp] = useState(null);

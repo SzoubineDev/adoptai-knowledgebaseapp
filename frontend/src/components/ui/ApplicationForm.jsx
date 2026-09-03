@@ -3,15 +3,15 @@
 import { useState } from 'react';
 import { Card } from '@/components/ui/Cards';
 
-export default function ApplicationForm({ onClose, onSubmit }) {
+export default function ApplicationForm({ onClose, onSubmit, initialData }) {
   const [formData, setFormData] = useState({
-    code: '',
-    name: '',
-    source: 'SAP',
-    owner: '',
-    techLead: '',
-    criticality: 'Moyenne',
-    iamStatus: '',
+    code: initialData?.code || '',
+    name: initialData?.name || '',
+    source: initialData?.source || 'SAP',
+    owner: initialData?.owner || '',
+    techLead: initialData?.techLead || '',
+    criticality: initialData?.criticality || 'Moyenne',
+    iamStatus: initialData?.iamStatus || '',
   });
 
   const handleChange = (e) => {
@@ -26,28 +26,29 @@ export default function ApplicationForm({ onClose, onSubmit }) {
       return;
     }
 
-    const newApp = {
-      id: formData.code,
+    const appToSave = {
+      id: initialData ? initialData.id : formData.code, // keep same ID when editing
       code: formData.code,
       name: formData.name,
-      description: '',
+      description: initialData?.description || '',
       source: formData.source,
       owner: formData.owner,
       techLead: formData.techLead,
       criticality: formData.criticality,
       iamStatus: formData.iamStatus || 'Non défini',
-      category: 'Nouvelle',
+      category: initialData?.category || 'Nouvelle',
     };
 
-    onSubmit(newApp);
+    onSubmit(appToSave);
   };
 
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        {/* Rest of the form is identical */}
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-slate-800">Ajouter une application</h2>
+          <h2 className="text-xl font-bold text-slate-800">
+            {initialData ? 'Modifier l\'application' : 'Ajouter une application'}
+          </h2>
           <button
             onClick={onClose}
             className="text-slate-400 hover:text-slate-600 text-2xl leading-none"
@@ -58,7 +59,6 @@ export default function ApplicationForm({ onClose, onSubmit }) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* ... all the input fields remain unchanged ... */}
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1">
                 Code <span className="text-red-500">*</span>
@@ -173,7 +173,7 @@ export default function ApplicationForm({ onClose, onSubmit }) {
               type="submit"
               className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
             >
-              Enregistrer
+              {initialData ? 'Mettre à jour' : 'Enregistrer'}
             </button>
           </div>
         </form>
