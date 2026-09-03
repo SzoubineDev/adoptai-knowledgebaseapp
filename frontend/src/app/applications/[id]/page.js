@@ -3,6 +3,7 @@
 import { use, useEffect, useState } from 'react';
 import { Card, Badge } from '@/components/ui/Cards';
 import { PageStatus } from '@/components/ui/PageStatus';
+import Header from '@/components/layout/Header';
 import Link from 'next/link';
 import { fetchApplicationById } from '@/services/dataService';
 
