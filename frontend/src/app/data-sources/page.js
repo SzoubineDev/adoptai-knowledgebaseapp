@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Header from '@/components/layout/Header';
 import { Card, Badge } from '@/components/ui/Cards';
 import { PageStatus } from '@/components/ui/PageStatus';
+import Spinner from '@/components/Spinner';
 import { fetchDataSources } from '@/services/dataService';
 
 export default function DataSourcesPage() {

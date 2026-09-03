@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Header from '@/components/layout/Header';
 import { Card, Badge } from '@/components/ui/Cards';
 import { PageStatus } from '@/components/ui/PageStatus';
 import Link from 'next/link';
@@ -50,10 +49,6 @@ export default function ApplicationsPage() {
 
   return (
     <>
-      <Header
-        title="Inventaire des Applications — Knowledge Base"
-        subtitle="Catalogue centralisé des applications avec informations IAM et règles de filtrage réseau"
-      />
 
       <main className="p-8 space-y-6">
         {/* Filters and Controls */}

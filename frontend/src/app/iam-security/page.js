@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Header from '@/components/layout/Header';
 import { Card, StatCard, Badge } from '@/components/ui/Cards';
 import { fetchIamStats, fetchNetworkStats } from '@/services/dataService';
+import Spinner from '@/components/Spinner';
 
 export default function IamSecurityPage() {
   const [iamStats, setIamStats] = useState(null);
@@ -28,14 +29,13 @@ export default function IamSecurityPage() {
     loadStats();
   }, []);
 
-  if (loading || !iamStats || !networkStats) {
-    return (
-      <div className="p-8">
-        <p className="text-slate-600">Chargement des données...</p>
-      </div>
-    );
-  }
-
+if (loading || !iamStats || !networkStats) {
+  return (
+    <div className="p-8">
+      <Spinner />
+    </div>
+  );
+}
   return (
     <>
       <Header

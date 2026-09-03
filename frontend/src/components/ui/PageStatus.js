@@ -1,11 +1,12 @@
 import { Card } from './Cards';
+import Spinner from '../Spinner';
 
 export function PageStatus({ loading, error, children }) {
   if (loading) {
     return (
       <main className="p-8">
         <Card className="text-center py-12">
-          <p className="text-sm text-slate-500">Chargement des données…</p>
+          <Spinner />
         </Card>
       </main>
     );

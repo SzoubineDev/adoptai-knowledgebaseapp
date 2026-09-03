@@ -1,7 +1,6 @@
 'use client';
 
 import { use, useEffect, useState } from 'react';
-import Header from '@/components/layout/Header';
 import { Card, Badge } from '@/components/ui/Cards';
 import { PageStatus } from '@/components/ui/PageStatus';
 import Link from 'next/link';
@@ -53,7 +52,6 @@ export default function ApplicationDetailPage({ params }) {
         title={`${app?.name || 'Chargement...'} (${resolvedParams.id})`}
         subtitle={app ? `Application de la source ${app.source} — Catégorie : ${app.category}` : ''}
       />
-
       <PageStatus loading={loading} error={error}>
         <main className="p-8 space-y-6">
           <div>
